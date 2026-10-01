@@ -3,7 +3,6 @@
 name: Publish release
 
 on:
-  # 手动发布：填写包含构建产物的 run id，标签留空则取 pubspec.yaml 的版本号。
   workflow_dispatch:
     inputs:
       run_id:
@@ -12,7 +11,6 @@ on:
       tag:
         description: 'Release 标签，留空使用 pubspec.yaml 版本'
         required: false
-  # 主分支或 v* 标签构建成功后自动发布。
   workflow_run:
     workflows: ['Build app packages']
     types: [completed]
@@ -68,13 +66,11 @@ jobs:
           find dist -type f \
             \( -name '*.apk' \
             -o -name '*-windows-x64-portable.zip' \
-            -o -name '*-windows-x64-setup.exe' \
-            -o -name '*-macos.zip' \
-            -o -name '*.ipa' \) \
+            -o -name '*-windows-x64-setup.exe' \) \
             -exec cp -f {} packages/ \;
           ls -l packages
 
-      - name: Verify both editions are present
+      - name: Verify editions
         run: |
           missing=0
           for edition in duanjushijie quanjushijie; do
@@ -100,7 +96,7 @@ jobs:
           else
             gh release create "$TAG" -R ${{ github.repository }} \
               --title "短剧视界 / 全剧视界 $TAG" \
-              --notes "短剧视界（duanjushijie）与全剧视界（quanjushijie）的 Android APK、Windows x64 便携版与安装程序、macOS 压缩包、iOS 未签名 IPA。macOS 包未签名，首次打开需执行 xattr -dr com.apple.quarantine <应用>.app 移除隔离属性。"
+              --notes "短剧视界（duanjushijie）与全剧视界（quanjushijie）的 Android APK、Windows x64 便携版与安装程序。"
           fi
           FILES=$(find packages -maxdepth 1 -type f | sort)
           if [ -z "$FILES" ]; then
@@ -108,17 +104,3 @@ jobs:
             exit 1
           fi
           gh release upload "$TAG" -R ${{ github.repository }} $FILES --clobber
-
-      - name: Release summary
-        env:
-          TAG: ${{ steps.tag.outputs.tag }}
-        run: |
-          {
-            echo "## 已发布 $TAG"
-            echo
-            echo '| 版本 | 安装包 |'
-            echo '| --- | --- |'
-            for file in $(find packages -maxdepth 1 -type f | sort); do
-              echo "| $(basename "$file" | cut -d- -f1) | $(basename "$file") |"
-            done
-          } >> "$GITHUB_STEP_SUMMARY"
