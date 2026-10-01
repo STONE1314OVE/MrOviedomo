@@ -26,8 +26,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - edition: duanjushijie
-            arguments: ''
           - edition: quanjushijie
             arguments: '--all-sources'
     steps:
