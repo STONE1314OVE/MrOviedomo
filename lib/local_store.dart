@@ -118,24 +118,21 @@ class LocalStore extends ChangeNotifier {
     final admin = _profiles.firstWhere((profile) => profile.admin);
     return _bool('forceLogin') ?? admin.protected;
   }
-
   bool get canDownload => !locked && (profile.admin || profile.download);
-static const Set<String> _myAllowedSources = {
-static const Set<String> _myAllowedSources = {
-    'hongguo',          // 红果
-    'hanxiaoquan',      // 韩小圈
-    'huangdou',         // 黄豆
-    'huangju',          // 剧果（底层标准 id）
-    'yeguo',            // 野果
-    'huangguo-video',   // 黄果（视频）
-    'huangguoai',       // 黄果（AI）
-    'cloudfront',       // 黄果（旧版）
-  };
-
   bool allowsSource(String source) {
     if (locked) return false;
+    const allowed = {
+      'hongguo',
+      'hanxiaoquan',
+      'huangdou',
+      'huangju',
+      'yeguo',
+      'huangguo-video',
+      'huangguoai',
+      'cloudfront',
+    };
     final normalized = source.trim().toLowerCase();
-    if (!_myAllowedSources.contains(normalized)) return false;
+    if (!allowed.contains(normalized)) return false;
     return SourceSite.isAvailable(source) && profile.allows(source);
   }
   List<SourceSite> get sources =>
