@@ -1,4 +1,4 @@
-name: Build app packages
+name: Build and Release
 
 on:
   push:
@@ -7,7 +7,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  actions: read
 
 concurrency:
   group: app-build-${{ github.workflow }}-${{ github.ref }}
@@ -65,10 +66,10 @@ jobs:
         run: python scripts/configure_signing.py --clean
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.edition }}-android
+          name: android-packages
           path: dist/android/*
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
 
   windows:
     runs-on: windows-2022
@@ -117,7 +118,54 @@ jobs:
       - run: python scripts/build_windows.py ${{ matrix.arguments }}
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.edition }}-windows
+          name: windows-packages
           path: dist/windows/*
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
+
+  release:
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          version=$(sed -n 's/^version:[[:space:]]*\([0-9][^+[:space:]]*\).*/\1/p' pubspec.yaml | head -n 1)
+          if [ -z "$version" ]; then
+            version="${{ github.run_number }}"
+          fi
+          tag="v$version"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Collect packages
+        run: |
+          mkdir -p packages
+          find dist -type f \
+            \( -name '*.apk' \
+            -o -name '*-windows-x64-portable.zip' \
+            -o -name '*-windows-x64-setup.exe' \) \
+            -exec cp -f {} packages/ \;
+          ls -l packages
+
+      - name: Publish to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if gh release view "$TAG" -R ${{ github.repository }} > /dev/null 2>&1; then
+            gh release edit "$TAG" -R ${{ github.repository }} --title "全剧视界定制版 $TAG"
+          else
+            gh release create "$TAG" -R ${{ github.repository }} \
+              --title "全剧视界定制版 $TAG" \
+              --notes "包含指定 6 个站源的 Android APK 与 Windows 客户端。"
+          fi
+          FILES=$(find packages -maxdepth 1 -type f | sort)
+          gh release upload "$TAG" -R ${{ github.repository }} $FILES --clobber
