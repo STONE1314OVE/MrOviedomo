@@ -121,13 +121,15 @@ class LocalStore extends ChangeNotifier {
 
   bool get canDownload => !locked && (profile.admin || profile.download);
 static const Set<String> _myAllowedSources = {
-    'hongguo',      // 红果
-    'hanxiaoquan',  // 韩小圈
-    'huangdou',     // 黄豆
-    'juguo',        // 剧果
-    'jintian',      // 剧果历史兼容别名
-    'yeguo',        // 野果
-    'huangguo',     // 黄果
+static const Set<String> _myAllowedSources = {
+    'hongguo',          // 红果
+    'hanxiaoquan',      // 韩小圈
+    'huangdou',         // 黄豆
+    'huangju',          // 剧果（底层标准 id）
+    'yeguo',            // 野果
+    'huangguo-video',   // 黄果（视频）
+    'huangguoai',       // 黄果（AI）
+    'cloudfront',       // 黄果（旧版）
   };
 
   bool allowsSource(String source) {
