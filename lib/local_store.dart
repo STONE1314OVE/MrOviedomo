@@ -120,8 +120,22 @@ class LocalStore extends ChangeNotifier {
   }
 
   bool get canDownload => !locked && (profile.admin || profile.download);
-  bool allowsSource(String source) =>
-      !locked && SourceSite.isAvailable(source) && profile.allows(source);
+static const Set<String> _myAllowedSources = {
+    'hongguo',      // 红果
+    'hanxiaoquan',  // 韩小圈
+    'huangdou',     // 黄豆
+    'juguo',        // 剧果
+    'jintian',      // 剧果历史兼容别名
+    'yeguo',        // 野果
+    'huangguo',     // 黄果
+  };
+
+  bool allowsSource(String source) {
+    if (locked) return false;
+    final normalized = source.trim().toLowerCase();
+    if (!_myAllowedSources.contains(normalized)) return false;
+    return SourceSite.isAvailable(source) && profile.allows(source);
+  }
   List<SourceSite> get sources =>
       SourceSite.values.where((site) => allowsSource(site.id)).toList();
 
