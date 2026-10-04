@@ -123,12 +123,28 @@ class LocalStore extends ChangeNotifier {
 
   bool get canDownload => !locked && (profile.admin || profile.download);
   bool allowsSource(String source) {
-  if (locked) return false;
-  if (!SourceSite.isAvailable(source)) return false;
-  // 自定义源为设备级功能，管理员与普通用户均可使用。
-  if (SourceSite.isCustomId(source)) return true;
-  return profile.allows(source);
-}
+    if (locked) return false;
+    final normalized = source.trim().toLowerCase();
+
+    // 1. 如果是用户自己添加的自定义源（前缀为 custom:），直接放行
+    if (normalized.startsWith('custom:')) return true;
+
+    // 2. 允许的固定内置站源
+    const allowed = {
+      'hongguo',          // 红果
+      'hanxiaoquan',      // 韩小圈
+      'huangdou',         // 黄豆
+      'huangju',          // 剧果
+      'yeguo',            // 野果
+      'huangguo-video',   // 黄果视频
+      'huangguoai',       // 黄果 AI
+      'cloudfront',       // 黄果旧版
+      'ikanbot',          // 爱看机器人（如果需要就加上这行）
+    };
+
+    if (!allowed.contains(normalized)) return false;
+    return SourceSite.isAvailable(source) && profile.allows(source);
+  }
   List<SourceSite> get sources {
     final builtIn = SourceSite.values.where((site) => allowsSource(site.id));
     final custom = _customSources
